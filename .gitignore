@@ -1,0 +1,10 @@
+# Env files
+.env
+.venv
+env
+venv
+
+# Build files
+out/
+dist/
+build/
