@@ -18,3 +18,18 @@ A project in Data Acquisition class all about keeping your guitar safe.
    ```bash
    uvicorn guitarkeep.server:app
    ```
+
+## Example Queries
+
+* List all data entries
+  ```graphql
+  {
+     dataEntry {
+        ts
+        roomType
+        dataType
+        value
+        source
+     }
+  }
+  ```
