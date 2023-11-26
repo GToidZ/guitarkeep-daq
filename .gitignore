@@ -8,3 +8,5 @@ venv
 out/
 dist/
 build/
+
+__pycache__/
