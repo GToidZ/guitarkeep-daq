@@ -24,7 +24,7 @@ A project in Data Acquisition class all about keeping your guitar safe.
 * List all data entries
   ```graphql
   {
-     dataEntry {
+     dataEntries {
         ts
         roomType
         dataType
