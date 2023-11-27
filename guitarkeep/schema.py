@@ -48,5 +48,25 @@ class Query:
 
             res = (await s.execute(sql)).scalars().all()
         return [DataEntry.from_sql(entry) for entry in res]
+    
+    @sb.field
+    async def data_entries_by_room_type(
+        self, 
+        room_type: str, 
+        start_time: Optional[datetime] = None, 
+        end_time: Optional[datetime] = None
+        ) -> list[DataEntry]:
+        async with DBConnection.get().session() as s:
+            sql = select(models.DataEntry).filter(models.DataEntry.roomType == room_type).order_by(models.DataEntry.ts)
 
+            if start_time:
+                sql = sql.filter(models.DataEntry.ts >= start_time)
+            
+            if end_time:
+                sql = sql.filter(models.DataEntry.ts <= end_time)
+
+            res = (await s.execute(sql)).scalars().all()
+        return [DataEntry.from_sql(entry) for entry in res]
+    
+    
 schema = sb.Schema(query=Query)
