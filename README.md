@@ -30,6 +30,39 @@ A project in Data Acquisition class all about keeping your guitar safe.
         dataType
         value
         source
+        tip
+     }
+  }
+  ```
+
+* List all data entries in Living Room
+  ```graphql
+  {
+     dataEntriesByRoomType(roomType: livingRoom) {
+        ts
+        roomType
+        dataType
+        value
+        source
+        tip
+     }
+  }
+  ```
+
+* List all humidity data during 26 October to 28 October
+  ```graphql
+  {
+     dataEntriesByDataType(
+        dataType: humidity,
+        startTime: "2023-10-26",
+        endTime: "2023-10-28"
+     ) {
+        ts
+        roomType
+        dataType
+        value
+        source
+        tip
      }
   }
   ```
