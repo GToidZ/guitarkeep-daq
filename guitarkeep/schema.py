@@ -53,9 +53,30 @@ class DataEntry:
 
     @sb.field
     def tip(self) -> Optional[str]:
-        return None
+        compare = {
+            "humidity": [45, 55],
+            "temperature": [18, 28],
+            "light": [0, 100],
+            "rainfall": [0, 0.5]
+        }
 
-@sb.type
+        if self.data_type not in compare.keys():
+            return "NA"
+        
+        # Additional check for room_type when it is 'outside'
+        if self.room_type == 'outside':
+            if self.data_type == 'humidity' and self.value > compare['humidity'][1]:
+                if self.rainfall > compare['rainfall'][1]:  # Use compare dictionary for rainfall threshold
+                    return "High humidity, consider closing window"
+
+        # Existing checks for humidity, temperature, light, and rainfall
+        if self.value > compare[self.data_type][1]:
+            return self.data_type + " should be lower"
+        if self.value < compare[self.data_type][0]:
+            return self.data_type + " should be higher"
+        return self.data_type + " is in the right range"
+
+@sb.type    
 class Query:
     @sb.field
     async def data_entries(
