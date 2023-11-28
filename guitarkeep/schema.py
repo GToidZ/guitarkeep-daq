@@ -91,6 +91,32 @@ class AveragedData:
             value=row.averaged
         )
 
+    @sb.field
+    def tip(self) -> Optional[str]:
+        compare = {
+            "humidity": [45, 55],
+            "temperature": [18, 28],
+            "light": [0, 100],
+            "rainfall": [0, 0.5]
+        }
+
+        if self.data_type not in compare.keys():
+            return "NA"
+
+        # Additional check for room_type when it is 'outside'
+        if self.room_type == 'outside':
+            if self.data_type == 'rainfall' and self.value > compare['rainfall'][1]:
+                return "High rainfall, consider closing window"
+            if self.data_type == 'temperature' and self.value > compare['temperature'][1]:
+                return "High temperature outside, consider lowering temperature inside your rooms"
+
+        # Existing checks for humidity, temperature, light, and rainfall
+        if self.value > compare[self.data_type][1]:
+            return self.data_type + " should be lower"
+        if self.value < compare[self.data_type][0]:
+            return self.data_type + " should be higher"
+        return self.data_type + " is in the right range"
+
 @sb.type    
 class Query:
     @sb.field
@@ -166,6 +192,17 @@ class Query:
                 ).filter(or_(models.DataEntry.roomType == room_type.value, models.DataEntry.roomType == "Outside")
                 ).group_by(models.DataEntry.roomType, models.DataEntry.dataType)
             
+            res = (await s.execute(sql)).all()
+        return [AveragedData.from_sql(row) for row in res]
+
+    @sb.field
+    async def all_avg_data(self) -> list[AveragedData]:
+        async with DBConnection.get().session() as s:
+            sql = select(
+                models.DataEntry.roomType,
+                models.DataEntry.dataType,
+                func.avg(models.DataEntry.value).label('averaged')
+                ).group_by(models.DataEntry.roomType, models.DataEntry.dataType)
             res = (await s.execute(sql)).all()
         return [AveragedData.from_sql(row) for row in res]
     
