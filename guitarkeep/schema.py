@@ -1,15 +1,15 @@
 from .db import models
 from .db.connection import DBConnection
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 
-from typing import Optional, Union
+from typing import Optional
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from decouple import config, Csv
 import strawberry as sb
 
 # Declaring Enums
-RoomType = StrEnum('RoomType', {
+RoomType = Enum('RoomType', {
     (
         ''.join((str(v)[0].lower(), str(v).title().replace(" ", "")[1:])),
         str(v)
@@ -18,12 +18,12 @@ RoomType = StrEnum('RoomType', {
     )
 })
 
-DataType = StrEnum('DataType', {
+DataType = Enum('DataType', {
     (
         ''.join((str(v)[0].lower(), str(v).title().replace(" ", "")[1:])),
         str(v)
     ) for v in config(
-        "DATA_TYPES", default="Humidity, Light, Temperature", cast=Csv()
+        "DATA_TYPES", default="Humidity, Light, Temperature, Rainfall", cast=Csv()
     )
 })
 
@@ -65,9 +65,10 @@ class DataEntry:
         
         # Additional check for room_type when it is 'outside'
         if self.room_type == 'outside':
-            if self.data_type == 'humidity' and self.value > compare['humidity'][1]:
-                if self.rainfall > compare['rainfall'][1]:  # Use compare dictionary for rainfall threshold
-                    return "High humidity, consider closing window"
+            if self.data_type == 'rainfall' and self.value > compare['rainfall'][1]:
+                    return "High rainfall, consider closing window"
+            if self.data_type == 'temperature' and self.value > compare['temperature'][1]:
+                    return "High temperature outside, consider lowering temperature inside your rooms"
 
         # Existing checks for humidity, temperature, light, and rainfall
         if self.value > compare[self.data_type][1]:
@@ -75,6 +76,20 @@ class DataEntry:
         if self.value < compare[self.data_type][0]:
             return self.data_type + " should be higher"
         return self.data_type + " is in the right range"
+
+@sb.type
+class AveragedData:
+    room_type: str
+    data_type: str
+    value: float
+    
+    @classmethod
+    def from_sql(cls, row) -> "AveragedData":
+        return cls(
+            room_type=row.roomType,
+            data_type=row.dataType,
+            value=row.averaged
+        )
 
 @sb.type    
 class Query:
@@ -106,7 +121,9 @@ class Query:
         end_time: Optional[datetime] = None
         ) -> list[DataEntry]:
         async with DBConnection.get().session() as s:
-            sql = select(models.DataEntry).filter(models.DataEntry.roomType == str(room_type)).order_by(models.DataEntry.ts)
+            sql = select(models.DataEntry).filter(
+                or_(models.DataEntry.roomType == room_type.value, models.DataEntry.roomType == "Outside")
+            ).order_by(models.DataEntry.ts)
 
             if start_time:
                 sql = sql.filter(models.DataEntry.ts >= start_time)
@@ -135,5 +152,21 @@ class Query:
 
             res = (await s.execute(sql)).scalars().all()
         return [DataEntry.from_sql(entry) for entry in res]
+    
+    @sb.field
+    async def avg_room_data(
+        self,
+        room_type: RoomType
+    ) -> list[AveragedData]:
+        async with DBConnection.get().session() as s:
+            sql = select(
+                    models.DataEntry.roomType,
+                    models.DataEntry.dataType,
+                    func.avg(models.DataEntry.value).label('averaged')
+                ).filter(or_(models.DataEntry.roomType == room_type.value, models.DataEntry.roomType == "Outside")
+                ).group_by(models.DataEntry.roomType, models.DataEntry.dataType)
+            
+            res = (await s.execute(sql)).all()
+        return [AveragedData.from_sql(row) for row in res]
     
 schema = sb.Schema(query=Query)
