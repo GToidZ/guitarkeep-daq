@@ -19,7 +19,7 @@ class DBConnection:
     @classmethod
     def get(cls):
         if cls._instance == None:
-            cls._engine = create_async_engine(cls._dbConnectionUrl, echo=True)
+            cls._engine = create_async_engine(cls._dbConnectionUrl, echo=True, pool_size=3, max_overflow=0)
             cls._session = sessionmaker(cls._engine, class_=AsyncSession)
             cls._instance = cls.__new__(cls)
             cls._init = True
