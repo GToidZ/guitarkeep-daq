@@ -119,7 +119,7 @@ class AveragedData:
 
 @sb.type    
 class Query:
-    @sb.field
+    @sb.field(description="Return all data entries in the data warehouse")
     async def data_entries(
         self,
         start_time: Optional[datetime] = None,
@@ -139,7 +139,7 @@ class Query:
             res = (await s.execute(sql)).scalars().all()
         return [DataEntry.from_sql(entry) for entry in res]
     
-    @sb.field
+    @sb.field(description="Return all data entries in the data warehouse matching room")
     async def data_entries_by_room_type(
         self, 
         room_type: RoomType, 
@@ -160,7 +160,7 @@ class Query:
             res = (await s.execute(sql)).scalars().all()
         return [DataEntry.from_sql(entry) for entry in res]
     
-    @sb.field
+    @sb.field(description="Return all data entries in the data warehouse matching data type")
     async def data_entries_by_data_type(
         self, 
         data_type: DataType, 
@@ -179,7 +179,7 @@ class Query:
             res = (await s.execute(sql)).scalars().all()
         return [DataEntry.from_sql(entry) for entry in res]
     
-    @sb.field
+    @sb.field(description="Return averages of all data types of a specific room")
     async def avg_room_data(
         self,
         room_type: RoomType
@@ -195,7 +195,7 @@ class Query:
             res = (await s.execute(sql)).all()
         return [AveragedData.from_sql(row) for row in res]
 
-    @sb.field
+    @sb.field(description="Return all averages of all data types and room types")
     async def all_avg_data(self) -> list[AveragedData]:
         async with DBConnection.get().session() as s:
             sql = select(
